@@ -1,0 +1,40 @@
+# Configuration file to generate model predictions
+# for the Density Split cross-correlation function
+# using the Gaussian streaming model.
+
+# ---- MINIMUM REQUIRED PARAMETERS FOR MODEL PREDICTIONS ---- #
+
+# density quantiles to model, separated by commas
+denbins : "1,5"
+
+# real-space cross-correlation function. The curly brackets
+# will be automatically replaced by the quantile numbers
+# specified in "denbins"
+xi_r_filename : "data/correlation_functions/DS{}_extended.tpcf"
+
+# line-of-sight velocity dispersion profile
+sv_rmu_filename : "data/velocity_profiles/DS{}_extended.std_los_velocity_vs_rmu"
+
+
+# ---- OPTIONAL PARAMETERS, NEEDED IF WE WANT TO FIT A MEASUREMENT --- #
+
+fit_data : False                # set to true to fit model to a redshift-space measurement            
+xi_smu_filename: null           # redshift-space cross-correlation function. 
+covmat_filename: null           # covariance matrix of the measurement. 
+
+omega_m: 0.285                  # fiducial matter density
+sigma_8: 0.828                  # fiducial sigma_8
+effective_z : 0.57              # effective redshift
+
+smin: 0,0                       # minimum fitting scale (separate quantiles by commas)
+smax: 150,150                   # maximum fitting scale (separate quantiles by commas)
+multipoles: '0,2'               # multipoles of the CCF to fit
+
+velocity_coupling : 'empirical' # "empirical" (Paillas et al. 2021) or "linear" density-velocity coupling 
+rsd_model : 'streaming'         # "streaming" or "kaiser" model for redshift-space distortions
+rescale_rspace : 0              # set to 1 if we only want to fit AP ratio, and not individual q parameters
+rescale_bs8 : 1                 # set to 1 if we want to constrain galaxy bias by comparing with mocks
+use_hartlap : 1                 # use Hartlap correction factor for the precision matrix
+bias_mocks : 2.07               # if "rescale_bs8" is set to 1, use this value as the fiducial mock bias
+use_reconstruction : False      # use iterative reconstruction in the MCMC fit
+beta_grid_filename: null        # grid of beta values over which reconstruction was run
