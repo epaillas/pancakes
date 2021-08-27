@@ -54,7 +54,7 @@ contains
 
     has_velocity = .false.
 
-    open(20, file=input_filename, status='old', form='unformatted')
+    open(20, file=input_filename, status='old', form='unformatted', access='stream')
     read(20) nrows
     read(20) ncols
     write(*,*) nrows, ncols, 'hi'
