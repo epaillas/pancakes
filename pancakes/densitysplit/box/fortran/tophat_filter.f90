@@ -62,31 +62,31 @@ program tophat_filter
   read(ngrid_char, *) ngrid
   read(nthreads_char, *) nthreads
 
-  write(*,*) '-----------------------'
-  write(*,*) 'Running tophat_filter.exe'
-  write(*,*) 'input parameters:'
-  write(*,*) ''
-  write(*, *) 'data_filename1: ', trim(data_filename1)
-  write(*, *) 'data_filename2: ', trim(data_filename2)
-  write(*, *) 'boxsize: ', trim(boxsize_char)
-  write(*, *) 'output_filename: ', trim(output_filename)
-  write(*, *) 'dim1_min: ', trim(dim1_min_char), ' Mpc'
-  write(*, *) 'dim1_max: ', trim(dim1_max_char), ' Mpc'
-  write(*, *) 'rfilter: ', trim(rfilter_char), 'Mpc'
-  write(*, *) 'ngrid: ', trim(ngrid_char)
-  write(*, *) 'nthreads: ', trim(nthreads_char)
-  write(*,*) ''
+  ! write(*,*) '-----------------------'
+  ! write(*,*) 'Running tophat_filter.exe'
+  ! write(*,*) 'input parameters:'
+  ! write(*,*) ''
+  ! write(*, *) 'data_filename1: ', trim(data_filename1)
+  ! write(*, *) 'data_filename2: ', trim(data_filename2)
+  ! write(*, *) 'boxsize: ', trim(boxsize_char)
+  ! write(*, *) 'output_filename: ', trim(output_filename)
+  ! write(*, *) 'dim1_min: ', trim(dim1_min_char), ' Mpc'
+  ! write(*, *) 'dim1_max: ', trim(dim1_max_char), ' Mpc'
+  ! write(*, *) 'rfilter: ', trim(rfilter_char), 'Mpc'
+  ! write(*, *) 'ngrid: ', trim(ngrid_char)
+  ! write(*, *) 'nthreads: ', trim(nthreads_char)
+  ! write(*,*) ''
 
   call read_unformatted(data_filename1, data1, weight1, ndata1, has_velocity1)
   call read_unformatted(data_filename2, data2, weight2, ndata2, has_velocity2)
   call linked_list(data2, boxsize, ngrid, ll, lirst, rgrid)
 
-  write(*,*) 'ndata1 dim: ', size(data1, dim=1), size(data1, dim=2)
-  write(*,*) 'data1(min, max) = ', minval(data1(:,:)), maxval(data1(:,:))
-  write(*,*) 'weight1(min, max) = ', minval(weight1), maxval(weight1)
-  write(*,*) 'ndata2 dim: ', size(data2, dim=1), size(data2, dim=2)
-  write(*,*) 'data2(min, max) = ', minval(data2(1,:)), maxval(data2(1,:))
-  write(*,*) 'weight2(min, max) = ', minval(weight2), maxval(weight2)
+  ! write(*,*) 'ndata1 dim: ', size(data1, dim=1), size(data1, dim=2)
+  ! write(*,*) 'data1(min, max) = ', minval(data1(:,:)), maxval(data1(:,:))
+  ! write(*,*) 'weight1(min, max) = ', minval(weight1), maxval(weight1)
+  ! write(*,*) 'ndata2 dim: ', size(data2, dim=1), size(data2, dim=2)
+  ! write(*,*) 'data2(min, max) = ', minval(data2(1,:)), maxval(data2(1,:))
+  ! write(*,*) 'weight2(min, max) = ', minval(weight2), maxval(weight2)
 
   allocate(D1D2(ndata1))
   allocate(delta(ndata1))
@@ -100,7 +100,7 @@ program tophat_filter
   box2 = boxsize / 2
 
   call OMP_SET_NUM_THREADS(nthreads)
-  write(*,*) 'Maximum number of threads: ', OMP_GET_MAX_THREADS()
+  ! write(*,*) 'Maximum number of threads: ', OMP_GET_MAX_THREADS()
   
   !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i, ii, ipx, ipy, &
   !$OMP ipz, ix, iy, iz, ix2, iy2, iz2, disx, disy, disz, dis2)
@@ -158,8 +158,8 @@ program tophat_filter
   bin_volume = 4./3 * pi * (dim1_max ** 3 - dim1_min ** 3)
   delta = D1D2 / (bin_volume * mean_density) - 1
   
-  write(*,*) ''
-  write(*,*) 'Calculation finished. Writing output...'
+  ! write(*,*) ''
+  ! write(*,*) 'Calculation finished. Writing output...'
   
   open(12, file=output_filename, status='replace', form='unformatted')
   write(12) ndata1
