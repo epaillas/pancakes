@@ -19,8 +19,6 @@ def save_as_unformatted(data, filename):
     '''
     data = data.astype('float64')
 
-    print('im hereee')
-
     nrows, ncols = np.shape(data)
     f = FortranFile(filename, 'w')
     nrows, ncols = np.shape(data)
