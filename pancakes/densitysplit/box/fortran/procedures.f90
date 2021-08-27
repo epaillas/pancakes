@@ -57,6 +57,7 @@ contains
     open(20, file=input_filename, status='old', form='unformatted')
     read(20) nrows
     read(20) ncols
+    write(*,*) nrows, ncols, 'hi'
     allocate(data(ncols, nrows))
     allocate(weight(nrows))
     read(20) data
