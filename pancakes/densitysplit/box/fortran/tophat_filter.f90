@@ -21,8 +21,6 @@ program tophat_filter
   real*8, allocatable, dimension(:,:)  :: data2, data1
   real*8, dimension(:), allocatable :: D1D2, delta, weight1, weight2
 
-  logical :: has_velocity1, has_velocity2
-
   character(20), external :: str
   character(len=500) :: data_filename2, data_filename1, output_filename
   character(len=10) :: dim1_max_char, dim1_min_char
@@ -70,19 +68,19 @@ program tophat_filter
     ! read tracers file
     if (trim(tracers_fileformat) == 'ascii') then
         if (use_weights == 1) then
-            call read_catalogue_type2(data_filename1, data1, weight1, ndata1, has_velocity1)
-            call read_catalogue_type2(data_filename2, data2, weight2, ndata2, has_velocity2)
+            call read_catalogue_type2(data_filename1, data1, weight1, ndata1)
+            call read_catalogue_type2(data_filename2, data2, weight2, ndata2)
         else
-            call read_catalogue_type1(data_filename1, data1, weight1, ndata1, has_velocity1)
-            call read_catalogue_type1(data_filename2, data2, weight2, ndata2, has_velocity2)
+            call read_catalogue_type1(data_filename1, data1, weight1, ndata1)
+            call read_catalogue_type1(data_filename2, data2, weight2, ndata2)
         end if
     else
         if (use_weights == 1) then
-            call read_catalogue_type6(data_filename1, data1, weight1, ndata1, has_velocity1)
-            call read_catalogue_type6(data_filename2, data2, weight2, ndata2, has_velocity2)
+            call read_catalogue_type6(data_filename1, data1, weight1, ndata1)
+            call read_catalogue_type6(data_filename2, data2, weight2, ndata2)
         else
-            call read_catalogue_type5(data_filename1, data1, weight1, ndata1, has_velocity1)
-            call read_catalogue_type5(data_filename2, data2, weight2, ndata2, has_velocity2)
+            call read_catalogue_type5(data_filename1, data1, weight1, ndata1)
+            call read_catalogue_type5(data_filename2, data2, weight2, ndata2)
         end if
     end if
 
