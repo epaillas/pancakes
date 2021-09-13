@@ -2,6 +2,23 @@ module procedures
   implicit none
 contains
 
+    subroutine count_rows_ascii(input_filename, nrows)
+        implicit none
+
+        character(len=500), intent(in) :: input_filename
+        integer*8, intent(out) :: nrows
+        
+        open(10, file=input_filename, status='old')
+
+        nrows = 0
+        do
+            read(10, *, end=10)
+            nrows = nrows + 1
+        end do
+        10 close(10)
+
+    end subroutine count_rows_ascii
+
   subroutine linked_list(data, boxsize, ngrid, ll, lirst, rgrid)
     implicit none
     integer*8 :: ndata
