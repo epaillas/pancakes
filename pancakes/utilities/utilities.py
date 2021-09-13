@@ -29,7 +29,7 @@ def read_2darray(fname):
                 counter += 1
     return dim1, dim2, result
 
-def get_multipoles(
+def multipole(
     ell,
     s,
     mu,
@@ -49,13 +49,13 @@ def get_multipoles(
     """
     multipoles = [ ]
     for pole in ell:
-        multipole = get_multipole(
+        multipole = _multipole(
             pole, s, mu, xi_smu
             )
         multipoles.append(multipole)
     return multipoles
 
-def get_multipole(
+def _multipole(
     ell,
     s,
     mu,

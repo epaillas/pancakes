@@ -5,7 +5,7 @@ from scipy.integrate import simps
 from scipy.interpolate import RectBivariateSpline, InterpolatedUnivariateSpline
 from scipy.stats import norm
 from ..perturbation_theory.empirical import radial_velocity
-from ..utilities.utilities import get_multipoles, read_2darray
+from ..utilities.utilities import multipole, read_2darray
 from ..utilities.cosmology import Cosmology
 
 
@@ -162,7 +162,7 @@ class DensitySplitCCF:
         else:
             xi_smu = self.xi_smu_array[denbin]
 
-        xi_0, xi_2, xi_4 = get_multipoles(
+        xi_0, xi_2, xi_4 = multipole(
             [0, 2, 4], self.s_for_xi[denbin], self.mu_for_xi[denbin],
             xi_smu
         )
@@ -487,7 +487,7 @@ class DensitySplitCCF:
                 denbin
             )
 
-            xi_0, xi_2, xi_4 = get_multipoles(
+            xi_0, xi_2, xi_4 = multipole(
                 [0, 2, 4], self.s_for_xi[self.scale_range],
                 self.mu_for_xi, model_xi
             )
@@ -506,6 +506,8 @@ class DensitySplitCCF:
             elif poles == '2':
                 modelvec = np.concatenate((modelvec,
                                            xi_2))
+            else:
+                raise ValueError("Unrecognized multipole fitting choice".)
 
             # build data vector
             beta = fs8 / bs8
@@ -543,7 +545,6 @@ class DensitySplitCCF:
                 and 0.1 < fs8 < 2.0 and 10 < sigma_v < 700 \
                 and 0.1 < bs8 < 3.0 and 0.8 < q_perp < 1.2 \
                 and 0.8 < q_para < 1.2 and np.all((-5 < nu) & (nu < 5)):
-
             return 0.0
 
         return -np.inf
