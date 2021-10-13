@@ -82,12 +82,12 @@ program tophat_filter
         if (use_weights == 1) then
             call read_catalogue_type2(data_filename1, data1, weight_data1, ndata1)
             call read_catalogue_type2(data_filename2, data2, weight_data2, ndata2)
-            if (estimator .eq. 'LS') all read_catalogue_type2(random_filename1, random1, weight_random1, nrandom1)
+            if (estimator .eq. 'LS') call read_catalogue_type2(random_filename1, random1, weight_random1, nrandom1)
             call read_catalogue_type2(random_filename2, random2, weight_random2, nrandom2)
         else
             call read_catalogue_type1(data_filename1, data1, weight_data1, ndata1)
             call read_catalogue_type1(data_filename2, data2, weight_data2, ndata2)
-            if (estimator .eq. 'LS') all read_catalogue_type1(random_filename1, random1, weight_random1, nrandom1)
+            if (estimator .eq. 'LS') call read_catalogue_type1(random_filename1, random1, weight_random1, nrandom1)
             call read_catalogue_type1(random_filename2, random2, weight_random2, nrandom2)
 
         end if
@@ -95,12 +95,12 @@ program tophat_filter
         if (use_weights == 1) then
             call read_catalogue_type6(data_filename1, data1, weight_data1, ndata1)
             call read_catalogue_type6(data_filename2, data2, weight_data2, ndata2)
-            if (estimator .eq. 'LS') all read_catalogue_type6(random_filename1, random1, weight_random1, nrandom1)
+            if (estimator .eq. 'LS') call read_catalogue_type6(random_filename1, random1, weight_random1, nrandom1)
             call read_catalogue_type6(random_filename2, random2, weight_random2, nrandom2)
         else
             call read_catalogue_type5(data_filename1, data1, weight_data1, ndata1)
             call read_catalogue_type5(data_filename2, data2, weight_data2, ndata2)
-            if (estimator .eq. 'LS') all read_catalogue_type5(random_filename1, random1, weight_random1, nrandom1)
+            if (estimator .eq. 'LS') call read_catalogue_type5(random_filename1, random1, weight_random1, nrandom1)
             call read_catalogue_type5(random_filename2, random2, weight_random2, nrandom2)
         end if
     end if
