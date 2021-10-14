@@ -29,7 +29,7 @@ program tophat_filter
   character(len=20) :: ngrid_char, use_weights_char, rfilter_char, nthreads_char
   character(len=20) :: estimator, tracers_fileformat
 
-  if (iargc() .ne. 16 ) then
+  if (iargc() .ne. 15 ) then
     write(*,*) 'Some arguments are missing.'
     write(*,*) '1) data_filename1'
     write(*,*) '2) data_filename2'
@@ -43,9 +43,9 @@ program tophat_filter
     write(*,*) '10) gridmin'
     write(*,*) '11) gridmax'
     write(*,*) '12) estimator'
-    write(*,*) '13) use_weights'
-    write(*,*) '14) tracers_fileformat'
-    write(*,*) '15) nthreads'
+    write(*,*) '13) nthreads'
+    write(*,*) '14) use_weights'
+    write(*,*) '15) tracers_fileformat'
     write(*,*) ''
     stop
   end if

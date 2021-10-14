@@ -66,64 +66,75 @@ def generate_centres(
       
 
 def filtered_density(
-  data_filename1, data_filename2, random_filename2,
-  output_filename, dim1_min, dim1_max,
-  filter_type, filter_size, ngrid, 
-  gridmin, gridmax, random_filename1=None,
-  nthreads=1, estimator='DP', output_format='unformatted'
+    data_filename1, data_filename2, random_filename2,
+    output_filename, dim1_min, dim1_max,
+    filter_type, filter_size, ngrid, 
+    gridmin, gridmax, random_filename1=None,
+    nthreads=1, estimator='DP', output_format='unformatted',
+    input_format='unformatted', use_weights=True
 ):
 
-  # check if files exist
-  if not path.isfile(data_filename1):
-    raise FileNotFoundError(f'{data_filename1} does not exist.')
+    # check if files exist
+    for filename in [data_filename1,
+        data_filename2, random_filename2]:
 
-  if not path.isfile(data_filename2):
-    raise FileNotFoundError(f'{data_filename2} does not exist.')
+    # check if files exist
+    if not path.isfile(data_filename1):
+        raise FileNotFoundError(f'{data_filename1} does not exist.')
 
-  if not path.isfile(random_filename2):
-    raise FileNotFoundError(f'{random_filename2} does not exist.')
+    if not path.isfile(data_filename2):
+        raise FileNotFoundError(f'{data_filename2} does not exist.')
 
-  if estimator == 'LS' and random_filename1 == None:
-    raise RuntimeError('Lady-Szalay estimator requires a random catalogue for dataset 1.')
+    if not path.isfile(random_filename2):
+        raise FileNotFoundError(f'{random_filename2} does not exist.')
 
-  if random_filename1 == None:
-    random_filename1 = random_filename2
+    if estimator == 'LS' and random_filename1 == None:
+        raise RuntimeError('Lady-Szalay estimator requires a random catalogue for dataset 1.')
 
-  if dim1_max == None:
-    if filter_type == 'tophat':
+    if random_filename1 == None:
+        random_filename1 = random_filename2
+
+    if use_weights:
+        use_weights = 1
+    else: 
+        use_weights = 0
+
+    if dim1_max == None:
+        if filter_type == 'tophat':
             dim1_max = filter_size
-    elif filter_type == 'gaussian':
+        elif filter_type == 'gaussian':
             dim1_max = 5 * filter_size
 
-  binpath = path.join(path.dirname(__file__),
+    binpath = path.join(path.dirname(__file__),
     'bin', '{}_filter.exe'.format(filter_type))
 
-  cmd = [
-    binpath, data_filename1, data_filename2,
-    random_filename1, random_filename2, output_filename,
-    str(dim1_min), str(dim1_max), str(filter_size),
-    str(ngrid), str(gridmin), str(gridmax),
-    estimator, str(nthreads)
-  ]
+    cmd = [
+        binpath, data_filename1, data_filename2,
+        random_filename1, random_filename2, output_filename,
+        str(dim1_min), str(dim1_max), str(filter_size),
+        str(ngrid), str(gridmin), str(gridmax),
+        estimator, str(nthreads), str(use_weights),
+        input_format
+    ]
 
-  subprocess.call(cmd)
+    subprocess.call(cmd)
 
-  # open filter file
-  f = FortranFile(output_filename, 'r')
-  smoothed_delta = f.read_ints()[0]
-  smoothed_delta = f.read_reals(dtype=np.float64)
-  f.close()
+    # open filter file
+    f = FortranFile(output_filename, 'r')
+    smoothed_delta = f.read_ints()[0]
+    smoothed_delta = f.read_reals(dtype=np.float64)
+    f.close()
 
-  if output_format != 'unformatted':
-    if output_format == 'npy':
-      subprocess.call(['rm', output_filename])
-      np.save(output_filename, smoothed_delta)
-    elif output_format == 'ascii':
-      np.savetxt(output_filename, smoothed_delta)
-    else:
-      print('Output format not recognized. Using unformatted F90 file.')
+    if output_format != 'unformatted':
+        if output_format == 'npy':
+            subprocess.call(['rm', output_filename])
+        elif output_format == 'ascii':
+            np.savetxt(output_filename, smoothed_delta)
+        else:
+            print('Output format not recognized. Using unformatted F90 file.')
+        np.save(output_filename, smoothed_delta)
   
-  return smoothed_delta
+    return smoothed_delta
 
 
 def split_centres(
