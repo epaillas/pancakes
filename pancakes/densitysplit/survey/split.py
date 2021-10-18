@@ -2,68 +2,90 @@ import sys
 from os import path
 import numpy as np
 import subprocess
+import yaml
 from scipy.io import FortranFile
+from .cosmology import Cosmology
+from .utilities import sky_to_cartesian
 
 
-def generate_centres(
-    ncentres, output_filename, sampling='uniform',
-    sampling_filename=None, xmin=0, xmax=0,
-    ymin=0, ymax=0, zmin=0,
-    zmax=0, output_format='unformatted'
-):
+class DensitySplit:
+    """
+    Class to perform the density split algorithm on
+    a cosmological survey, as in 
+    https://arxiv.org/abs/1810.02864.
+    """
 
-    np.random.seed(0)
+    def __init__(self, parameter_file: str):
+        """
+        Initialize class.
 
-    if sampling == 'subsampling':
-        # check if file exists
-        if not path.isfile(sampling_filename):
-            raise FileNotFoundError(f'{sampling_filename} does not exist.')
-        # check if this is a numpy file
-        if '.npy' in sampling_filename:
-            centres = np.load(sampling_filename)
+        Args:
+            parameter_file: YAML file containing configuration parameters.
+        """
+
+        with open(parameter_file) as file:
+            self.params = yaml.full_load(file)
+    
+    def random_points(self):
+        """
+        Generates the initial random points for the
+        density split algorithm. These can either be
+        subsampled from an input file, or be randomly
+        selected from a uniform distribution within
+        a rectangular boundary.
+        
+        Args:
+            parameter_file: YAML file containing configuration parameters.
+        """
+        np.random.seed(0)  # set random seed for reproducibility
+
+        sampling_filename = self.params['sampling_filename']
+        if self.params['seeds_method'] == 'subsampling':
+            if not path.isfile(sampling_filename):
+                raise FileNotFoundError(f'{sampling_filename} not found.')
+
+            # only text file supported for now
+            sampling_data = np.genfromtxt(self.params['sampling_filename'])
+            idx = np.random.choice(
+                len(sampling_data), size=self.params['nseeds'],
+                replace=False
+            )
+            seeds = sampling_data[idx]
+
+            # convert to comoving coordinates if necessary
+            if self.params['convert_seeds']:
+                if self.params['omega_m'] is None:
+                    raise ValueError('If convert_coordinates is True, '
+                                     'omega_m needs to be specified.')
+            cosmo = Cosmology(omega_m=self.params['omega_m'])
+            seeds = sky_to_cartesian(seeds, cosmo)
+
+        elif self.params['seeds_method'] == 'uniform':
+            x = np.random.uniform(
+                self.params['seeds_xmin'],
+                self.params['seeds_xmax'],
+                self.params['nseeds']
+            )
+            y = np.random.uniform(
+                self.params['seeds_ymin'],
+                self.params['seeds_ymax'],
+                self.params['nseeds']
+            )
+            z = np.random.uniform(
+                self.params['seeds_zmin'],
+                self.params['seeds_zmax'],
+                self.params['nseeds']
+            )
+
+            seeds = np.c_[x, y, z]
         else:
-            # if not, check if it is a text file
-            try:
-                centres = np.genfromtxt(sampling_filename)
-            except Exception:
-                # else, check if it is an unformatted file
-                try:
-                    fin = FortranFile(sampling_filename, 'r')
-                    nrows = fin.read_ints()[0]
-                    ncols = fin.read_ints()[0]
-                    pos = fin.read_reals(dtype=np.float64).reshape(
-                        nrows, ncols
-                    )
-                    idx = np.random.choice(nrows, size=ncentres, replace=False)
-                    centres = pos[idx]
-                except Exception:
-                    sys.exit('Format of sampling file not recognized.')
+            sys.exit('Sampling method not recognized')
 
-    elif sampling == 'uniform':
-        x = np.random.uniform(xmin, xmax, ncentres)
-        y = np.random.uniform(ymin, ymax, ncentres)
-        z = np.random.uniform(zmin, zmax, ncentres)
-        centres = np.c_[x, y, z]
-    else:
-        sys.exit('Sampling type not recognized')
+        # save to file
+        handle = self.params['handle']
+        seeds_filename = f'{handle}_seeds.dat'
+        np.savetxt(seeds_filename, seeds)
 
-    centres = centres.astype('float64')
-    if output_format == 'unformatted':
-        f = FortranFile(output_filename, 'w')
-        nrows, ncols = np.shape(centres)
-        f.write_record(nrows)
-        f.write_record(ncols)
-        f.write_record(centres)
-        f.close()
-    elif output_format == 'ascii':
-        np.savetxt(output_filename, centres)
-    elif output_format == 'numpy':
-        np.save(output_filename, centres)
-    else:
-        sys.exit('Output format not recognized.')
-
-    return centres
-      
 
 def filtered_density(
     data_filename1, data_filename2, random_filename2,
@@ -75,23 +97,16 @@ def filtered_density(
 ):
 
     # check if files exist
-    for filename in [data_filename1,
-        data_filename2, random_filename2]:
+    for filename in [data_filename1,  data_filename2,
+                     random_filename2]:
+        if not path.isfile(filename):
+            raise FileNotFoundError(f'{filename} not found.')
 
-    # check if files exist
-    if not path.isfile(data_filename1):
-        raise FileNotFoundError(f'{data_filename1} does not exist.')
+    if estimator == 'LS' and random_filename1 is None:
+        raise RuntimeError('Lady-Szalay estimator requires a random catalogue'
+                           'for dataset 1.')
 
-    if not path.isfile(data_filename2):
-        raise FileNotFoundError(f'{data_filename2} does not exist.')
-
-    if not path.isfile(random_filename2):
-        raise FileNotFoundError(f'{random_filename2} does not exist.')
-
-    if estimator == 'LS' and random_filename1 == None:
-        raise RuntimeError('Lady-Szalay estimator requires a random catalogue for dataset 1.')
-
-    if random_filename1 == None:
+    if random_filename1 is None:
         random_filename1 = random_filename2
 
     if use_weights:
@@ -99,7 +114,7 @@ def filtered_density(
     else: 
         use_weights = 0
 
-    if dim1_max == None:
+    if dim1_max is None:
         if filter_type == 'tophat':
             dim1_max = filter_size
         elif filter_type == 'gaussian':
