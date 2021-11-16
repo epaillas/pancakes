@@ -6,7 +6,10 @@ from scipy.integrate import simps
 from scipy.interpolate import RectBivariateSpline, InterpolatedUnivariateSpline
 from scipy.stats import norm
 from scipy.special import eval_legendre
-from gsm.perturbation_theory.empirical import radial_velocity
+from ..perturbation_theory.empirical import radial_velocity
+from ..utilities.utilities import multipole, read_2darray
+from ..utilities.cosmology import Cosmology
+import yaml
 
 
 class TwoPointCF:
@@ -24,6 +27,9 @@ class TwoPointCF:
         Args:
             param_file: YAML file containing configuration parameters.
         """
+
+        with open(param_file) as file:
+            self.params = yaml.full_load(file)
 
         # cosmology for Minerva
         self.cosmo = Cosmology(omega_m=self.params['omega_m'])
@@ -44,45 +50,60 @@ class TwoPointCF:
             self.r_for_xi, xi_r, k=3
         )
 
-        # read line-of-sight velocity dispersion profile 
-        self.r_for_v, self.mu_for_v, sv_los = \
-            read_2darray(self.params['sv_los_filename']
-        self.sv_los = RectBivariateSpline(
-            self.r_for_v, self.mu_for_v, sv_los,
-            kx=1, ky=1
-        )
+
+        if not self.params['constant_dispersion']:
+            # read line-of-sight velocity dispersion profile 
+            self.r_for_v, self.mu_for_v, sv_los = \
+                read_2darray(self.params['sv_los_filename'])
+            self.sv_los = RectBivariateSpline(
+                self.r_for_v, self.mu_for_v, sv_los,
+                kx=1, ky=1
+            )
+        else:
+            self.r_for_v = self.r_for_xi
+            self.mu_for_v = np.linspace(-1, 1, 100)
+            sv_los = np.ones(
+                [len(self.r_for_v), len(self.mu_for_v)]
+            )
+            self.sv_los = RectBivariateSpline(
+                self.r_for_v, self.mu_for_v, sv_los,
+                kx=1, ky=1
+            )
         
         if self.params['fit_data']:
             # read redshift-space correlation function
             self.s_for_xi, self.mu_for_xi, xi_smu = \
-                read_2darray(self.params['xi_smu_filename']
+                read_2darray(self.params['xi_smu_filename'])
 
-        # read covariance matrix
-        if os.path.isfile(self.params['covmat_filename']):
-            data = np.load(self.covmat_filename, allow_pickle=True)
-            self.cov = data[0]
-            nmocks = data[1]
-            nbins = len(self.cov)
-            if self.params['use_hartlap']:
-                hartlap = (1 - (nbins + 1) / (nmocks - 1))
-                self.icov = hartlap * np.linalg.inv(self.cov)
+        if self.params['fit_data']:
+            # read covariance matrix
+            if os.path.isfile(self.params['covmat_filename']):
+                data = np.load(self.covmat_filename, allow_pickle=True)
+                self.cov = data[0]
+                nmocks = data[1]
+                nbins = len(self.cov)
+                if self.params['use_hartlap']:
+                    hartlap = (1 - (nbins + 1) / (nmocks - 1))
+                    self.icov = hartlap * np.linalg.inv(self.cov)
+                else:
+                    self.icov = np.linalg.inv(self.cov)
             else:
-                self.icov = np.linalg.inv(self.cov)
-        else:
-            raise FileNotFoundError('Covariance matrix not found.')
+                raise FileNotFoundError('Covariance matrix not found.')
 
         if self.params['velocity_coupling'] not in ['empirical', 'linear']:
             raise ValueError("Only 'linear' or 'empirical' density-velocity"
                              " couplings are supported.")
 
-        # restrict to desired fitting scales
-        self.scale_range = (self.s_for_xi >= self.params['smin']) & (
-            self.s_for_xi <= self.params['smax'])
 
-        # read data multipoles
-        self.xi_0, self.xi_2, self.xi_4 = multipole(
-            [0, 2, 4], self.s_for_xi, self.mu_for_xi,
-            self.xi_smu
+        if self.params['fit_data']:
+            # restrict to desired fitting scales
+            self.scale_range = (self.s_for_xi >= self.params['smin']) & (
+                self.s_for_xi <= self.params['smax'])
+
+            # read data multipoles
+            self.xi_0, self.xi_2, self.xi_4 = multipole(
+                [0, 2, 4], self.s_for_xi, self.mu_for_xi,
+                self.xi_smu
         )
 
 
@@ -104,6 +125,19 @@ class TwoPointCF:
         sv_los = self.sv_los
         r = self.r_for_xi
 
+        # calculated integrated galaxy monopole
+        int_xi_r = np.zeros_like(r)
+        dr = np.diff(r)[0]
+        for i in range(len(int_xi_r)):
+            int_xi_r[i] = 1. / (r[i] + dr / 2) ** 3 * \
+                (np.sum(xi_r(r)[:i+1] * ((r[:i+1] + dr / 2) ** 3
+                 - (r[:i+1] - dr / 2) ** 3)))
+
+        int_xi_r = InterpolatedUnivariateSpline(
+            self.r_for_xi,
+            int_xi_r, k=3, ext=0
+        )
+
         # this rescaling makes the model only sensitive
         # to the ratio of Alcock-Paczynski parameters
         if self.params['rescale_rspace']:
@@ -117,23 +151,27 @@ class TwoPointCF:
         # of the current bs8 and the one from simulation
         if self.params['rescale_bs8']: 
             y1 = (bs8 / self.bs8) * xi_r(r)
+            y2 = (bs8 / self.bs8) * int_xi_r(r)
         else:
             y1 = xi_r(r)
-        y2 = sv_los(r, self.mu_for_v)
+            y2 = int_xi_r(r)
+        y3 = sv_los(r, self.mu_for_v)
 
         # build new functions for the model ingredients after
         # correcting for the bias and Alcock-Paczynski distortions
         corrected_xi_r = InterpolatedUnivariateSpline(x, y1, k=3)
-        corrected_sv_los = RectBivariateSpline(x, self.mu_for_v, y2, kx=1, ky=1)
+        corrected_int_xi_r = InterpolatedUnivariateSpline(x, y2, k=3)
+        corrected_sv_los = RectBivariateSpline(x, self.mu_for_v, y3, kx=1, ky=1)
 
-        # calculated integrated galaxy monopole
-        int_xi_r = np.zeros_like(x)
-        dx = np.diff(x)[0]
-        for i in range(len(int_xi_r)):
-            int_xi_r[i] = 1. / (x[i] + dx / 2) ** 3 * \
-                (np.sum(y1(x)[:i+1] * ((x[:i+1] + dx / 2) ** 3 \
-                - (x[:i+1] - dx / 2) ** 3)))
-        corrected_int_xi_r = InterpolatedUnivariateSpline(x, int_xi_r, k=3)
+
+        # # calculated integrated galaxy monopole
+        # int_xi_r = np.zeros_like(x)
+        # dx = np.diff(x)[0]
+        # for i in range(len(int_xi_r)):
+        #     int_xi_r[i] = 1. / (x[i] + dx / 2) ** 3 * \
+        #         (np.sum(y1(x)[:i+1] * ((x[:i+1] + dx / 2) ** 3 \
+        #         - (x[:i+1] - dx / 2) ** 3)))
+        # corrected_int_xi_r = InterpolatedUnivariateSpline(x, int_xi_r, k=3)
 
         # rescale the line-of-sight velocity dispersion amplitude
         sigma_v *= q_para 
@@ -336,7 +374,7 @@ class TwoPointCF:
         elif poles == '2':
             datavec = xi_2
         else:
-            raise ValueError("Unrecognized multipole fitting choice".)
+            raise ValueError("Unrecognized multipole fitting choice.")
 
         # calculate chi-sq and log-likelihood
         chi2 = np.dot(np.dot((modelvec - datavec),
