@@ -39,8 +39,8 @@ class DensitySplitCCF:
             xi_smu_filenames = [self.params['xi_smu_filename'].format(i)
                                 for i in self.denbins]
 
-        smins = [int(i) for i in self.params['smin'].split(',')]
-        smaxs = [int(i) for i in self.params['smax'].split(',')]
+        smins = [int(i) for i in str(self.params['smin']).split(',')]
+        smaxs = [int(i) for i in str(self.params['smax']).split(',')]
 
         xi_r_filename = {}
         xi_smu_filename = {}
@@ -78,7 +78,7 @@ class DensitySplitCCF:
         if self.params['fit_data']:
             # read covariance matrix
             if os.path.isfile(self.params['covmat_filename']):
-                data = np.load(self.params['covmat_filename'])
+                data = np.load(self.params['covmat_filename'], allow_pickle=True)
                 self.cov = data[0]
                 nmocks = data[1]
                 nbins = len(self.cov)
@@ -88,6 +88,7 @@ class DensitySplitCCF:
                 else:
                     self.icov = np.linalg.inv(self.cov)
             else:
+                print(self.params['covmat_filename'])
                 raise FileNotFoundError('Covariance matrix not found.')
 
         if self.params['velocity_coupling'] not in ['empirical', 'linear']:
@@ -116,11 +117,17 @@ class DensitySplitCCF:
                 self.r_for_xi[denbin] = data[0]
                 self.xi_r_array[denbin] = data[1]
 
-                data = np.load(sv_rmu_filename[denbin],
-                               allow_pickle=True)
-                self.r_for_v[denbin] = data[0]
-                self.mu_for_v[denbin] = data[1]
-                self.sv_rmu_array[denbin] = data[2]
+                if self.params['constant_dispersion']:
+                    self.r_for_v[denbin] = self.r_for_xi[denbin]
+                    self.mu_for_v[denbin] = np.linspace(-1, 1, 80)
+                    self.sv_rmu_array[denbin] = np.ones([len(self.r_for_v[denbin]),
+                        len(self.mu_for_v[denbin])])
+                else:
+                    data = np.load(sv_rmu_filename[denbin],
+                                   allow_pickle=True)
+                    self.r_for_v[denbin] = data[0]
+                    self.mu_for_v[denbin] = data[1]
+                    self.sv_rmu_array[denbin] = data[2]
 
                 if self.params['fit_data']:
                     data = np.load(xi_smu_filename[denbin],
@@ -133,12 +140,18 @@ class DensitySplitCCF:
                 self.r_for_xi[denbin] = data[:, 0]
                 self.xi_r_array[denbin] = data[:, 1]
 
-                self.r_for_v[denbin], self.mu_for_v[denbin], \
-                    self.sv_rmu_array[denbin] = \
-                    read_2darray(sv_rmu_filename[denbin])
+                if self.params['constant_dispersion']:
+                    self.r_for_v[denbin] = self.r_for_xi[denbin]
+                    self.mu_for_v[denbin] = np.linspace(-1, 1, 80)
+                    self.sv_rmu_array[denbin] = np.ones([len(self.r_for_v[denbin]),
+                        len(self.mu_for_v[denbin])])
+                else:
+                    self.r_for_v[denbin], self.mu_for_v[denbin], \
+                        self.sv_rmu_array[denbin] = \
+                        read_2darray(sv_rmu_filename[denbin])
 
                 if self.params['fit_data']:
-                    self.r_for_xi[denbin], self.mu_for_xi[denbin], \
+                    self.s_for_xi[denbin], self.mu_for_xi[denbin], \
                         self.xi_smu_array[denbin] = \
                         read_2darray(xi_smu_filename[denbin])
 
@@ -507,7 +520,7 @@ class DensitySplitCCF:
                 modelvec = np.concatenate((modelvec,
                                            xi_2))
             else:
-                raise ValueError("Unrecognized multipole fitting choice".)
+                raise ValueError("Unrecognized multipole fitting choice.")
 
             # build data vector
             beta = fs8 / bs8
