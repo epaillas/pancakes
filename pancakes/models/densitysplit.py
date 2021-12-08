@@ -4,6 +4,7 @@ import os
 from scipy.integrate import simps
 from scipy.interpolate import RectBivariateSpline, InterpolatedUnivariateSpline
 from scipy.stats import norm
+from astropy.io import fits
 from ..perturbation_theory.empirical import radial_velocity
 from ..utilities.utilities import multipole, read_2darray
 from ..utilities.cosmology import Cosmology
@@ -32,6 +33,11 @@ class DensitySplitCCF:
         xi_r_filenames = [self.params['xi_r_filename'].format(i)
                           for i in self.denbins]
 
+        reconstructed_multipoles_fns = [
+            self.params['reconstructed_multipoles_fn'].format(i)
+            for i in self.denbins
+        ]
+
         sv_rmu_filenames = [self.params['sv_rmu_filename'].format(i)
                             for i in self.denbins]
 
@@ -39,20 +45,29 @@ class DensitySplitCCF:
             xi_smu_filenames = [self.params['xi_smu_filename'].format(i)
                                 for i in self.denbins]
 
+            multipoles_fns = [
+                self.params['multipoles_fn'].format(i)
+                for i in self.denbins
+            ]
+
         smins = [int(i) for i in str(self.params['smin']).split(',')]
         smaxs = [int(i) for i in str(self.params['smax']).split(',')]
 
         xi_r_filename = {}
         xi_smu_filename = {}
+        multipoles_fn = {}
+        reconstructed_multipoles_fn = {}
         sv_rmu_filename = {}
         self.smin = {}
         self.smax = {}
 
         for i, DS in enumerate(self.denbins):
             xi_r_filename[f'DS{DS}'] = xi_r_filenames[i]
+            reconstructed_multipoles_fn[f'DS{DS}'] = reconstructed_multipoles_fns[i]
             sv_rmu_filename[f'DS{DS}'] = sv_rmu_filenames[i]
             if self.params['fit_data']:
                 xi_smu_filename[f'DS{DS}'] = xi_smu_filenames[i]
+                multipoles_fn[f'DS{DS}'] = multipoles_fns[i]
             self.smin[f'DS{DS}'] = smins[i]
             self.smax[f'DS{DS}'] = smaxs[i]
 
@@ -136,9 +151,10 @@ class DensitySplitCCF:
                     self.mu_for_xi[denbin] = data[1]
                     self.xi_smu_array[denbin] = data[2]
             else:
-                data = np.genfromtxt(xi_r_filename[denbin])
-                self.r_for_xi[denbin] = data[:, 0]
-                self.xi_r_array[denbin] = data[:, 1]
+                with fits.open(reconstructed_multipoles_fn[denbin]) as hdul:
+                    data = hdul[1].data
+                self.r_for_xi[denbin] = data['r_c']
+                self.xi_r_array[denbin] = data['xi_0']
 
                 if self.params['constant_dispersion']:
                     self.r_for_v[denbin] = self.r_for_xi[denbin]
@@ -151,9 +167,13 @@ class DensitySplitCCF:
                         read_2darray(sv_rmu_filename[denbin])
 
                 if self.params['fit_data']:
-                    self.s_for_xi[denbin], self.mu_for_xi[denbin], \
-                        self.xi_smu_array[denbin] = \
-                        read_2darray(xi_smu_filename[denbin])
+                    with fits.open(multipoles_fn) as hdul:
+                        data = hdul[1].data
+                    self.s_for_xi[denbin] = data['r_c']
+                    self.mu_for_xi[denbin] = data['mu_c']
+                    self.xi_0_array[denbin] = data['xi_0']
+                    self.xi_2_array[denbin] = data['xi_2']
+                    self.xi_4_array[denbin] = data['xi_4']
 
             if self.params['fit_data']:
                 # restrict measured vectors to the desired fitting scales
