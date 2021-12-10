@@ -573,6 +573,7 @@ class DensitySplitCCF:
 
         fs8, bs8, sigma_v, q_perp, q_para, *nu = theta
         beta = fs8 / bs8
+        nu = np.asarray(nu)
 
         if self.beta_prior[0] < beta < self.beta_prior[1] \
                 and 0.1 < fs8 < 2.0 and 10 < sigma_v < 700 \
