@@ -504,8 +504,8 @@ class DensitySplitCCF:
         modelvec = np.array([])
         datavec = np.array([])
 
-        for j in range(self.ndenbins):
-            denbin = 'DS{}'.format(j)
+        for j, DS in enumerate(self.denbins):
+            denbin = f'DS{DS}'
             nu[denbin] = nulist[j]
 
             model_xi = self.theory_xi_smu(
