@@ -33,8 +33,8 @@ class DensitySplitCCF:
         xi_r_filenames = [self.params['xi_r_filename'].format(i)
                           for i in self.denbins]
 
-        reconstructed_multipoles_fns = [
-            self.params['reconstructed_multipoles_fn'].format(i)
+        real_multipoles_fns = [
+            self.params['real_multipoles_fn'].format(i)
             for i in self.denbins
         ]
 
@@ -45,7 +45,7 @@ class DensitySplitCCF:
             xi_smu_filenames = [self.params['xi_smu_filename'].format(i)
                                 for i in self.denbins]
 
-            multipoles_fns = [
+            redshift_multipoles_fns = [
                 self.params['multipoles_fn'].format(i)
                 for i in self.denbins
             ]
@@ -55,19 +55,19 @@ class DensitySplitCCF:
 
         xi_r_filename = {}
         xi_smu_filename = {}
-        multipoles_fn = {}
-        reconstructed_multipoles_fn = {}
+        redshift_multipoles_fn = {}
+        real_multipoles_fn = {}
         sv_rmu_filename = {}
         self.smin = {}
         self.smax = {}
 
         for i, DS in enumerate(self.denbins):
             xi_r_filename[f'DS{DS}'] = xi_r_filenames[i]
-            reconstructed_multipoles_fn[f'DS{DS}'] = reconstructed_multipoles_fns[i]
+            real_multipoles_fn[f'DS{DS}'] = real_multipoles_fns[i]
             sv_rmu_filename[f'DS{DS}'] = sv_rmu_filenames[i]
             if self.params['fit_data']:
                 xi_smu_filename[f'DS{DS}'] = xi_smu_filenames[i]
-                multipoles_fn[f'DS{DS}'] = multipoles_fns[i]
+                redshift_multipoles_fn[f'DS{DS}'] = redshift_multipoles_fns[i]
             self.smin[f'DS{DS}'] = smins[i]
             self.smax[f'DS{DS}'] = smaxs[i]
 
@@ -93,10 +93,10 @@ class DensitySplitCCF:
         if self.params['fit_data']:
             # read covariance matrix
             if os.path.isfile(self.params['covmat_filename']):
-                data = np.load(self.params['covmat_filename'], allow_pickle=True)
-                self.cov = data[0]
-                nmocks = data[1]
+                with fits.open(self.params['covmat_filename']) as hdul:
+                    self.cov = hdul[0].data
                 nbins = len(self.cov)
+                nmocks = self.params['nmocks_covariance']
                 if self.params['use_hartlap']:
                     hartlap = (1 - (nbins + 1) / (nmocks - 1))
                     self.icov = hartlap * np.linalg.inv(self.cov)
@@ -151,7 +151,7 @@ class DensitySplitCCF:
                     self.mu_for_xi[denbin] = data[1]
                     self.xi_smu_array[denbin] = data[2]
             else:
-                with fits.open(reconstructed_multipoles_fn[denbin]) as hdul:
+                with fits.open(real_multipoles_fn[denbin]) as hdul:
                     data = hdul[1].data
                 self.r_for_xi[denbin] = data['r_c']
                 self.xi_r_array[denbin] = data['xi_0']
@@ -167,7 +167,7 @@ class DensitySplitCCF:
                         read_2darray(sv_rmu_filename[denbin])
 
                 if self.params['fit_data']:
-                    with fits.open(multipoles_fn) as hdul:
+                    with fits.open(redshift_multipoles_fn) as hdul:
                         data = hdul[1].data
                     self.s_for_xi[denbin] = data['r_c']
                     self.mu_for_xi[denbin] = data['mu_c']
