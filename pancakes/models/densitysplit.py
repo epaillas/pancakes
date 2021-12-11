@@ -214,7 +214,7 @@ class DensitySplitCCF:
     def theory_xi_smu(
         self, fs8, bs8,
         sigma_v, q_perp, q_para,
-        s, mu, denbin, nu=0.0
+        s, mu, nu, denbin
     ):
         '''
         Calculates the redshift-space cross-correlation function
