@@ -551,7 +551,7 @@ class DensitySplitCCF:
 
             # build data vector
             beta = fs8 / bs8
-            xi_0, xi_2, xi_4 = self.multipoles_data(beta, denbin)
+            xi_0, xi_2, xi_4 = self.data_multipoles(beta, denbin)
 
             if poles == '2':
                 datavec = np.concatenate(
