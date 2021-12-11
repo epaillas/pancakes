@@ -192,7 +192,7 @@ class DensitySplitCCF:
                 raise ValueError("Only 'linear' or 'empirical' "
                     "density-velocity couplings are supported.")
 
-    def data_multipoles(self, denbin, beta=None):
+    def data_multipoles(self, beta, denbin):
         if self.params['use_reconstruction']:
             xi_smu = self.interpolate_xi_smu(beta, denbin)
 
