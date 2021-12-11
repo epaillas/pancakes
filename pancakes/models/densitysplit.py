@@ -153,40 +153,40 @@ class DensitySplitCCF:
                         self.s_for_xi[denbin] = data[0]
                     self.mu_for_xi[denbin] = data[1]
                     self.xi_smu_array[denbin] = data[2]
-            else:
-                with fits.open(real_multipoles_fn[denbin]) as hdul:
-                    data = hdul[1].data
-                self.r_for_xi[denbin] = data['r_c']
-                self.xi_r_array[denbin] = data['xi_0']
-
-                if self.params['constant_dispersion']:
-                    self.r_for_v[denbin] = self.r_for_xi[denbin]
-                    self.mu_for_v[denbin] = np.linspace(-1, 1, 80)
-                    self.sv_rmu_array[denbin] = np.ones([len(self.r_for_v[denbin]),
-                        len(self.mu_for_v[denbin])])
                 else:
-                    self.r_for_v[denbin], self.mu_for_v[denbin], \
-                        self.sv_rmu_array[denbin] = \
-                        read_2darray(sv_rmu_filename[denbin])
+                    with fits.open(real_multipoles_fn[denbin]) as hdul:
+                        data = hdul[1].data
+                    self.r_for_xi[denbin] = data['r_c']
+                    self.xi_r_array[denbin] = data['xi_0']
+
+                    if self.params['constant_dispersion']:
+                        self.r_for_v[denbin] = self.r_for_xi[denbin]
+                        self.mu_for_v[denbin] = np.linspace(-1, 1, 80)
+                        self.sv_rmu_array[denbin] = np.ones([len(self.r_for_v[denbin]),
+                            len(self.mu_for_v[denbin])])
+                    else:
+                        self.r_for_v[denbin], self.mu_for_v[denbin], \
+                            self.sv_rmu_array[denbin] = \
+                            read_2darray(sv_rmu_filename[denbin])
+
+                    if self.params['fit_data']:
+                        with fits.open(redshift_multipoles_fn[denbin]) as hdul:
+                            data = hdul[1].data
+                        self.s_for_xi[denbin] = data['r_c']
+                        self.mu_for_xi[denbin] = data['mu_c']
+                        self.xi_0_array[denbin] = data['xi_0']
+                        self.xi_2_array[denbin] = data['xi_2']
+                        self.xi_4_array[denbin] = data['xi_4']
 
                 if self.params['fit_data']:
-                    with fits.open(redshift_multipoles_fn[denbin]) as hdul:
-                        data = hdul[1].data
-                    self.s_for_xi[denbin] = data['r_c']
-                    self.mu_for_xi[denbin] = data['mu_c']
-                    self.xi_0_array[denbin] = data['xi_0']
-                    self.xi_2_array[denbin] = data['xi_2']
-                    self.xi_4_array[denbin] = data['xi_4']
-
-            if self.params['fit_data']:
-                # restrict measured vectors to the desired fitting scales
-                self.scale_range[denbin] = (
-                    self.s_for_xi[denbin] >=
-                    self.smin[denbin]
-                ) & (
-                    self.s_for_xi[denbin] <=
-                    self.smax[denbin]
-                )
+                    # restrict measured vectors to the desired fitting scales
+                    self.scale_range[denbin] = (
+                        self.s_for_xi[denbin] >=
+                        self.smin[denbin]
+                    ) & (
+                        self.s_for_xi[denbin] <=
+                        self.smax[denbin]
+                    )
 
             if self.params['velocity_coupling'] not in ['empirical', 'linear']:
                 raise ValueError("Only 'linear' or 'empirical' "
