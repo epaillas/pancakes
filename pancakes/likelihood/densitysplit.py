@@ -1,4 +1,5 @@
 from multiprocessing import Pool
+import multiprocessing
 import emcee
 import numpy as np
 from pancakes.models.densitysplit import DensitySplitCCF
@@ -63,6 +64,8 @@ class SamplePosterior:
 
         backend = emcee.backends.HDFBackend(self.backend)
         backend.reset(self.nwalkers, self.ndim)
+
+        print(multiprocessing.cpu_count())
 
         with Pool(processes=self.ncores) as pool:
 
