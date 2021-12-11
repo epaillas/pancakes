@@ -103,7 +103,6 @@ class DensitySplitCCF:
                     else:
                         self.icov = np.linalg.inv(self.cov)
                 else:
-                    print(self.params['covmat_filename'])
                     raise FileNotFoundError('Covariance matrix not found.')
 
             if self.params['velocity_coupling'] not in ['empirical', 'linear']:
@@ -189,7 +188,6 @@ class DensitySplitCCF:
                     )
 
                 xi_0, xi_2, xi_4 = self.data_multipoles(0.0, denbin)
-                print(xi_0)
 
 
             if self.params['velocity_coupling'] not in ['empirical', 'linear']:
