@@ -46,108 +46,111 @@ class DensitySplitCCF:
                                 for i in self.denbins]
 
             redshift_multipoles_fns = [
-                self.params['multipoles_fn'].format(i)
-                for i in self.denbins
-            ]
+                self.params['redshift_multipoles_fn'].format(i)
+                    for i in self.denbins
+                ]
 
-        smins = [int(i) for i in str(self.params['smin']).split(',')]
-        smaxs = [int(i) for i in str(self.params['smax']).split(',')]
+            smins = [int(i) for i in str(self.params['smin']).split(',')]
+            smaxs = [int(i) for i in str(self.params['smax']).split(',')]
 
-        xi_r_filename = {}
-        xi_smu_filename = {}
-        redshift_multipoles_fn = {}
-        real_multipoles_fn = {}
-        sv_rmu_filename = {}
-        self.smin = {}
-        self.smax = {}
+            xi_r_filename = {}
+            xi_smu_filename = {}
+            redshift_multipoles_fn = {}
+            real_multipoles_fn = {}
+            sv_rmu_filename = {}
+            self.smin = {}
+            self.smax = {}
 
-        for i, DS in enumerate(self.denbins):
-            xi_r_filename[f'DS{DS}'] = xi_r_filenames[i]
-            real_multipoles_fn[f'DS{DS}'] = real_multipoles_fns[i]
-            sv_rmu_filename[f'DS{DS}'] = sv_rmu_filenames[i]
-            if self.params['fit_data']:
-                xi_smu_filename[f'DS{DS}'] = xi_smu_filenames[i]
-                redshift_multipoles_fn[f'DS{DS}'] = redshift_multipoles_fns[i]
-            self.smin[f'DS{DS}'] = smins[i]
-            self.smax[f'DS{DS}'] = smaxs[i]
+            for i, DS in enumerate(self.denbins):
+                xi_r_filename[f'DS{DS}'] = xi_r_filenames[i]
+                real_multipoles_fn[f'DS{DS}'] = real_multipoles_fns[i]
+                sv_rmu_filename[f'DS{DS}'] = sv_rmu_filenames[i]
+                if self.params['fit_data']:
+                    xi_smu_filename[f'DS{DS}'] = xi_smu_filenames[i]
+                    redshift_multipoles_fn[f'DS{DS}'] = redshift_multipoles_fns[i]
+                self.smin[f'DS{DS}'] = smins[i]
+                self.smax[f'DS{DS}'] = smaxs[i]
 
-        # cosmology for Minerva
-        self.cosmo = Cosmology(omega_m=self.params['omega_m'])
-        effective_z = self.params['effective_z']
+            # cosmology for Minerva
+            self.cosmo = Cosmology(omega_m=self.params['omega_m'])
+            effective_z = self.params['effective_z']
 
-        growth = self.cosmo.GrowthFactor(effective_z)
-        f = self.cosmo.GrowthRate(effective_z)
-        s8norm = self.params['sigma_8'] * growth
-        self.bs8 = self.params['bias_mocks'] * s8norm
-        self.fs8 = f * s8norm
+            growth = self.cosmo.GrowthFactor(effective_z)
+            f = self.cosmo.GrowthRate(effective_z)
+            s8norm = self.params['sigma_8'] * growth
+            self.bs8 = self.params['bias_mocks'] * s8norm
+            self.fs8 = f * s8norm
 
-        Hz = self.cosmo.HubbleParameter(effective_z)
-        self.iaH = (1 + effective_z) / Hz
-
-        if self.params['use_reconstruction']:
-            self.beta_grid = np.genfromtxt(self.params['beta_grid_filename'])
-            self.beta_prior = [self.beta_grid.min(), self.beta_grid.max()]
-        else:
-            self.beta_prior = [0.1, 0.8]
-
-        if self.params['fit_data']:
-            # read covariance matrix
-            if os.path.isfile(self.params['covmat_filename']):
-                with fits.open(self.params['covmat_filename']) as hdul:
-                    self.cov = hdul[0].data
-                nbins = len(self.cov)
-                nmocks = self.params['nmocks_covariance']
-                if self.params['use_hartlap']:
-                    hartlap = (1 - (nbins + 1) / (nmocks - 1))
-                    self.icov = hartlap * np.linalg.inv(self.cov)
-                else:
-                    self.icov = np.linalg.inv(self.cov)
-            else:
-                print(self.params['covmat_filename'])
-                raise FileNotFoundError('Covariance matrix not found.')
-
-        if self.params['velocity_coupling'] not in ['empirical', 'linear']:
-            raise ValueError("Only 'linear' or 'empirical' density-velocity"
-                             " couplings are supported.")
-
-        self.r_for_xi = {}
-        self.s_for_xi = {}
-        self.mu_for_xi = {}
-        self.xi_r_array = {}
-        self.xi_smu_array = {}
-        self.scale_range = {}
-
-        self.r_for_v = {}
-        self.mu_for_v = {}
-        self.sv_rmu_array = {}
-
-        self.datavec = np.array([])
-
-        for DS in self.denbins:
-            denbin = f'DS{DS}'
+            Hz = self.cosmo.HubbleParameter(effective_z)
+            self.iaH = (1 + effective_z) / Hz
 
             if self.params['use_reconstruction']:
-                data = np.load(xi_r_filename[denbin],
-                               allow_pickle=True)
-                self.r_for_xi[denbin] = data[0]
-                self.xi_r_array[denbin] = data[1]
+                self.beta_grid = np.genfromtxt(self.params['beta_grid_filename'])
+                self.beta_prior = [self.beta_grid.min(), self.beta_grid.max()]
+            else:
+                self.beta_prior = [0.1, 0.8]
 
-                if self.params['constant_dispersion']:
-                    self.r_for_v[denbin] = self.r_for_xi[denbin]
-                    self.mu_for_v[denbin] = np.linspace(-1, 1, 80)
-                    self.sv_rmu_array[denbin] = np.ones([len(self.r_for_v[denbin]),
-                        len(self.mu_for_v[denbin])])
+            if self.params['fit_data']:
+                # read covariance matrix
+                if os.path.isfile(self.params['covmat_filename']):
+                    with fits.open(self.params['covmat_filename']) as hdul:
+                        self.cov = hdul[0].data
+                    nbins = len(self.cov)
+                    nmocks = self.params['nmocks_covariance']
+                    if self.params['use_hartlap']:
+                        hartlap = (1 - (nbins + 1) / (nmocks - 1))
+                        self.icov = hartlap * np.linalg.inv(self.cov)
+                    else:
+                        self.icov = np.linalg.inv(self.cov)
                 else:
-                    data = np.load(sv_rmu_filename[denbin],
-                                   allow_pickle=True)
-                    self.r_for_v[denbin] = data[0]
-                    self.mu_for_v[denbin] = data[1]
-                    self.sv_rmu_array[denbin] = data[2]
+                    print(self.params['covmat_filename'])
+                    raise FileNotFoundError('Covariance matrix not found.')
 
-                if self.params['fit_data']:
-                    data = np.load(xi_smu_filename[denbin],
+            if self.params['velocity_coupling'] not in ['empirical', 'linear']:
+                raise ValueError("Only 'linear' or 'empirical' density-velocity"
+                                 " couplings are supported.")
+
+            self.r_for_xi = {}
+            self.s_for_xi = {}
+            self.mu_for_xi = {}
+            self.xi_r_array = {}
+            self.xi_smu_array = {}
+            self.xi_0_array = {}
+            self.xi_2_array = {}
+            self.xi_4_array = {}
+            self.scale_range = {}
+
+            self.r_for_v = {}
+            self.mu_for_v = {}
+            self.sv_rmu_array = {}
+
+            self.datavec = np.array([])
+
+            for DS in self.denbins:
+                denbin = f'DS{DS}'
+
+                if self.params['use_reconstruction']:
+                    data = np.load(xi_r_filename[denbin],
                                    allow_pickle=True)
-                    self.s_for_xi[denbin] = data[0]
+                    self.r_for_xi[denbin] = data[0]
+                    self.xi_r_array[denbin] = data[1]
+
+                    if self.params['constant_dispersion']:
+                        self.r_for_v[denbin] = self.r_for_xi[denbin]
+                        self.mu_for_v[denbin] = np.linspace(-1, 1, 80)
+                        self.sv_rmu_array[denbin] = np.ones([len(self.r_for_v[denbin]),
+                            len(self.mu_for_v[denbin])])
+                    else:
+                        data = np.load(sv_rmu_filename[denbin],
+                                       allow_pickle=True)
+                        self.r_for_v[denbin] = data[0]
+                        self.mu_for_v[denbin] = data[1]
+                        self.sv_rmu_array[denbin] = data[2]
+
+                    if self.params['fit_data']:
+                        data = np.load(xi_smu_filename[denbin],
+                                       allow_pickle=True)
+                        self.s_for_xi[denbin] = data[0]
                     self.mu_for_xi[denbin] = data[1]
                     self.xi_smu_array[denbin] = data[2]
             else:
@@ -167,7 +170,7 @@ class DensitySplitCCF:
                         read_2darray(sv_rmu_filename[denbin])
 
                 if self.params['fit_data']:
-                    with fits.open(redshift_multipoles_fn) as hdul:
+                    with fits.open(redshift_multipoles_fn[denbin]) as hdul:
                         data = hdul[1].data
                     self.s_for_xi[denbin] = data['r_c']
                     self.mu_for_xi[denbin] = data['mu_c']
@@ -192,13 +195,15 @@ class DensitySplitCCF:
     def data_multipoles(self, denbin, beta=None):
         if self.params['use_reconstruction']:
             xi_smu = self.interpolate_xi_smu(beta, denbin)
-        else:
-            xi_smu = self.xi_smu_array[denbin]
 
-        xi_0, xi_2, xi_4 = multipole(
-            [0, 2, 4], self.s_for_xi[denbin], self.mu_for_xi[denbin],
-            xi_smu
-        )
+            xi_0, xi_2, xi_4 = multipole(
+                [0, 2, 4], self.s_for_xi[denbin], self.mu_for_xi[denbin],
+                xi_smu
+            )
+        else:
+            xi_0 = self.xi_0_array[denbin]
+            xi_2 = self.xi_2_array[denbin]
+            xi_4 = self.xi_4_array[denbin]
 
         xi_0 = xi_0[self.scale_range[denbin]]
         xi_2 = xi_2[self.scale_range[denbin]]
