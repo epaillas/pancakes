@@ -534,12 +534,12 @@ class DensitySplitCCF:
 
             poles = self.params['multipoles']
 
-            if poles == '0+2+4':
+            if poles == '0,2,4':
                 modelvec = np.concatenate((modelvec,
                                            xi_0,
                                            xi_2,
                                            xi_4))
-            elif poles == '0+2':
+            elif poles == '0,2':
                 modelvec = np.concatenate((modelvec,
                                            xi_0,
                                            xi_2))
