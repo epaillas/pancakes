@@ -513,21 +513,23 @@ class DensitySplitCCF:
             denbin = f'DS{DS}'
             nu[denbin] = nulist[j]
 
+            s = self.s_for_xi[denbin][self.scale_range[denbin]]
+            mu = self.mu_for_xi[denbin]
+
             model_xi = self.theory_xi_smu(
                 fs8,
                 bs8,
                 sigma_v,
                 q_perp,
                 q_para,
-                self.s_for_xi[denbin][self.scale_range[denbin]],
-                self.mu_for_xi[denbin],
+                s,
+                mu,
                 nu[denbin],
                 denbin
             )
 
             xi_0, xi_2, xi_4 = multipole(
-                [0, 2, 4], self.s_for_xi[self.scale_range],
-                self.mu_for_xi, model_xi
+                [0, 2, 4], s, mu, model_xi
             )
 
             poles = self.params['multipoles']
