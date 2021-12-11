@@ -188,6 +188,10 @@ class DensitySplitCCF:
                         self.smax[denbin]
                     )
 
+                xi_0, xi_2, xi_4 = self.data_multipoles(0.0, denbin)
+                print(xi_0)
+
+
             if self.params['velocity_coupling'] not in ['empirical', 'linear']:
                 raise ValueError("Only 'linear' or 'empirical' "
                     "density-velocity couplings are supported.")
@@ -557,11 +561,11 @@ class DensitySplitCCF:
                 datavec = np.concatenate(
                     (datavec, xi_2)
                 )
-            if poles == '0+2':
+            if poles == '0,2':
                 datavec = np.concatenate(
                     (datavec, xi_0, xi_2)
                 )
-            if poles == '0+2+4':
+            if poles == '0,2,4':
                 datavec = np.concatenate(
                     (datavec, xi_0, xi_2, xi_4)
                 )
