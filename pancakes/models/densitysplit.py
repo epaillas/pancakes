@@ -178,8 +178,6 @@ class DensitySplitCCF:
                         self.smax[denbin]
                     )
 
-                xi_0, xi_2, xi_4 = self.data_multipoles(0.0, denbin)
-
 
             if self.params['velocity_coupling'] not in ['empirical', 'linear']:
                 raise ValueError("Only 'linear' or 'empirical' "
