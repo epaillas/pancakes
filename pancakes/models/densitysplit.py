@@ -4,7 +4,6 @@ import os
 from scipy.integrate import simps
 from scipy.interpolate import RectBivariateSpline, InterpolatedUnivariateSpline
 from scipy.stats import norm
-from astropy.io import fits
 from ..perturbation_theory.empirical import radial_velocity
 from ..utilities.utilities import multipole, read_2darray
 from ..utilities.cosmology import Cosmology
@@ -30,7 +29,7 @@ class DensitySplitCCF:
         self.denbins = self.params['denbins'].split(',')
         self.ndenbins = len(self.denbins)
 
-        xi_r_filenames = [self.params['xi_r_filename'].format(i)
+        real_multipoles_fns = [self.params['real_multipoles_fn'].format(i)
                           for i in self.denbins]
 
         real_multipoles_fns = [
@@ -42,9 +41,6 @@ class DensitySplitCCF:
                             for i in self.denbins]
 
         if self.params['fit_data']:
-            xi_smu_filenames = [self.params['xi_smu_filename'].format(i)
-                                for i in self.denbins]
-
             redshift_multipoles_fns = [
                 self.params['redshift_multipoles_fn'].format(i)
                     for i in self.denbins
@@ -53,8 +49,6 @@ class DensitySplitCCF:
             smins = [int(i) for i in str(self.params['smin']).split(',')]
             smaxs = [int(i) for i in str(self.params['smax']).split(',')]
 
-            xi_r_filename = {}
-            xi_smu_filename = {}
             redshift_multipoles_fn = {}
             real_multipoles_fn = {}
             sv_rmu_filename = {}
@@ -62,11 +56,9 @@ class DensitySplitCCF:
             self.smax = {}
 
             for i, DS in enumerate(self.denbins):
-                xi_r_filename[f'DS{DS}'] = xi_r_filenames[i]
                 real_multipoles_fn[f'DS{DS}'] = real_multipoles_fns[i]
                 sv_rmu_filename[f'DS{DS}'] = sv_rmu_filenames[i]
                 if self.params['fit_data']:
-                    xi_smu_filename[f'DS{DS}'] = xi_smu_filenames[i]
                     redshift_multipoles_fn[f'DS{DS}'] = redshift_multipoles_fns[i]
                 self.smin[f'DS{DS}'] = smins[i]
                 self.smax[f'DS{DS}'] = smaxs[i]
@@ -92,11 +84,11 @@ class DensitySplitCCF:
 
             if self.params['fit_data']:
                 # read covariance matrix
-                if os.path.isfile(self.params['covmat_filename']):
-                    with fits.open(self.params['covmat_filename']) as hdul:
-                        self.cov = hdul[0].data
+                if os.path.isfile(self.params['covmat_fn']):
+                    data = np.load(self.params['covmat_fn'], allow_pickle=True)
                     nbins = len(self.cov)
-                    nmocks = self.params['nmocks_covariance']
+                    nmocks = data['nmocks']
+                    self.cov = data['covmat']
                     if self.params['use_hartlap']:
                         hartlap = (1 - (nbins + 1) / (nmocks - 1))
                         self.icov = hartlap * np.linalg.inv(self.cov)
@@ -113,7 +105,6 @@ class DensitySplitCCF:
             self.s_for_xi = {}
             self.mu_for_xi = {}
             self.xi_r_array = {}
-            self.xi_smu_array = {}
             self.xi_0_array = {}
             self.xi_2_array = {}
             self.xi_4_array = {}
@@ -129,10 +120,10 @@ class DensitySplitCCF:
                 denbin = f'DS{DS}'
 
                 if self.params['use_reconstruction']:
-                    data = np.load(xi_r_filename[denbin],
+                    data = np.load(real_multipoles_fn[denbin],
                                    allow_pickle=True)
-                    self.r_for_xi[denbin] = data[0]
-                    self.xi_r_array[denbin] = data[1]
+                    self.r_for_xi[denbin] = data['r_c']
+                    self.xi_r_array[denbin] = data['xi_0']
 
                     if self.params['constant_dispersion']:
                         self.r_for_v[denbin] = self.r_for_xi[denbin]
@@ -147,14 +138,15 @@ class DensitySplitCCF:
                         self.sv_rmu_array[denbin] = data[2]
 
                     if self.params['fit_data']:
-                        data = np.load(xi_smu_filename[denbin],
+                        data = np.load(redshift_multipoles_fn[denbin],
                                        allow_pickle=True)
-                        self.s_for_xi[denbin] = data[0]
-                    self.mu_for_xi[denbin] = data[1]
-                    self.xi_smu_array[denbin] = data[2]
+                        self.s_for_xi[denbin] = data['r_c']
+                        self.mu_for_xi[denbin] = data['mu_c']
+                        self.xi_0_array[denbin] = data['xi_0']
+                        self.xi_2_array[denbin] = data['xi_2']
+                        self.xi_4_array[denbin] = data['xi_4']
                 else:
-                    with fits.open(real_multipoles_fn[denbin]) as hdul:
-                        data = hdul[1].data
+                    data = np.load(real_multipoles_fn[denbin], allow_pickle=True)
                     self.r_for_xi[denbin] = data['r_c']
                     self.xi_r_array[denbin] = data['xi_0']
 
@@ -169,8 +161,7 @@ class DensitySplitCCF:
                             read_2darray(sv_rmu_filename[denbin])
 
                     if self.params['fit_data']:
-                        with fits.open(redshift_multipoles_fn[denbin]) as hdul:
-                            data = hdul[1].data
+                        data = np.load(redshift_multipoles_fn[denbin], allow_pickle=True)
                         self.s_for_xi[denbin] = data['r_c']
                         self.mu_for_xi[denbin] = data['mu_c']
                         self.xi_0_array[denbin] = data['xi_0']
@@ -194,26 +185,8 @@ class DensitySplitCCF:
                 raise ValueError("Only 'linear' or 'empirical' "
                     "density-velocity couplings are supported.")
 
-    def data_multipoles(self, beta, denbin):
-        if self.params['use_reconstruction']:
-            xi_smu = self.interpolate_xi_smu(beta, denbin)
 
-            xi_0, xi_2, xi_4 = multipole(
-                [0, 2, 4], self.s_for_xi[denbin], self.mu_for_xi[denbin],
-                xi_smu
-            )
-        else:
-            xi_0 = self.xi_0_array[denbin]
-            xi_2 = self.xi_2_array[denbin]
-            xi_4 = self.xi_4_array[denbin]
-
-        xi_0 = xi_0[self.scale_range[denbin]]
-        xi_2 = xi_2[self.scale_range[denbin]]
-        xi_4 = xi_4[self.scale_range[denbin]]
-
-        return xi_0, xi_2, xi_4
-
-    def theory_xi_smu(
+    def theory_multipoles(
         self, fs8, bs8,
         sigma_v, q_perp, q_para,
         s, mu, nu, denbin
@@ -332,10 +305,13 @@ class DensitySplitCCF:
             integrand = los_pdf * (1 + corrected_xi_r(rr))
             xi_smu = (simps(integrand, y) - 1).T
 
+
         if self.params['rsd_model'] == 'kaiser':
             raise RuntimeError('Kaiser model not implemented.')
 
-        return xi_smu
+        xi_0, xi_2, xi_4 = multipole([0, 2, 4], s, mu, xi_smu)
+
+        return xi_0, xi_2, xi_4
 
     def theory_xi_sigmapi(
         self, fs8, bs8,
@@ -465,6 +441,20 @@ class DensitySplitCCF:
 
         return xi_sigmapi
 
+    def data_multipoles(self, beta, denbin):
+        if self.params['use_reconstruction']:
+            xi_0, xi_2, xi_4 = self.interpolate_multipoles(beta, denbin)
+        else:
+            xi_0 = self.xi_0_array[denbin]
+            xi_2 = self.xi_2_array[denbin]
+            xi_4 = self.xi_4_array[denbin]
+
+        xi_0 = xi_0[self.scale_range[denbin]]
+        xi_2 = xi_2[self.scale_range[denbin]]
+        xi_4 = xi_4[self.scale_range[denbin]]
+
+        return xi_0, xi_2, xi_4
+
     def interpolate_xi_r(self, beta, denbin):
         xi_r = np.zeros(len(self.r_for_xi[denbin]))
         for i in range(len(self.r_for_xi[denbin])):
@@ -474,6 +464,25 @@ class DensitySplitCCF:
             )
             xi_r[i] = interpolator(beta)
         return xi_r
+
+    def interpolate_multipoles(self, beta, denbin):
+        xi_0 = np.zeros(len(self.s_for_xi[denbin]))
+        xi_2 = np.zeros(len(self.s_for_xi[denbin]))
+        xi_4 = np.zeros(len(self.s_for_xi[denbin]))
+        for i in range(len(self.s_for_xi[denbin])):
+            interpolator_xi0 = InterpolatedUnivariateSpline(
+                self.beta_grid, self.xi_0_array[denbin][:, i], k=3, ext=0
+            )
+            interpolator_xi2 = InterpolatedUnivariateSpline(
+                self.beta_grid, self.xi_2_array[denbin][:, i], k=3, ext=0
+            )
+            interpolator_xi4 = InterpolatedUnivariateSpline(
+                self.beta_grid, self.xi_4_array[denbin][:, i], k=3, ext=0
+            )
+            xi_0[i] = interpolator_xi0(beta)
+            xi_2[i] = interpolator_xi2(beta)
+            xi_4[i] = interpolator_xi4(beta)
+        return xi_0, xi_2, xi_4
 
     def interpolate_sv_rmu(self, beta, denbin):
         sv_rmu = np.zeros([len(self.r_for_v[denbin]),
@@ -518,7 +527,7 @@ class DensitySplitCCF:
             s = self.s_for_xi[denbin][self.scale_range[denbin]]
             mu = self.mu_for_xi[denbin]
 
-            model_xi = self.theory_xi_smu(
+            xi_0, xi_2, xi_4 = self.theory_xi_smu(
                 fs8,
                 bs8,
                 sigma_v,
@@ -528,10 +537,6 @@ class DensitySplitCCF:
                 mu,
                 nu[denbin],
                 denbin
-            )
-
-            xi_0, xi_2, xi_4 = multipole(
-                [0, 2, 4], s, mu, model_xi
             )
 
             poles = self.params['multipoles']
