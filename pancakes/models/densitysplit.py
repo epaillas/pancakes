@@ -125,6 +125,8 @@ class DensitySplitCCF:
                     self.r_for_xi[denbin] = data['r_c']
                     self.xi_r_array[denbin] = data['xi_0']
 
+                    print(self.xi_r_array[denbin])
+
                     if self.params['constant_dispersion']:
                         self.r_for_v[denbin] = self.r_for_xi[denbin]
                         self.mu_for_v[denbin] = np.linspace(-1, 1, 80)
