@@ -86,9 +86,9 @@ class DensitySplitCCF:
                 # read covariance matrix
                 if os.path.isfile(self.params['covmat_fn']):
                     data = np.load(self.params['covmat_fn'], allow_pickle=True)
+                    self.cov = data['covmat']
                     nbins = len(self.cov)
                     nmocks = data['nmocks']
-                    self.cov = data['covmat']
                     if self.params['use_hartlap']:
                         hartlap = (1 - (nbins + 1) / (nmocks - 1))
                         self.icov = hartlap * np.linalg.inv(self.cov)
