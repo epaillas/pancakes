@@ -85,7 +85,7 @@ class DensitySplitCCF:
             if self.params['fit_data']:
                 # read covariance matrix
                 if os.path.isfile(self.params['covmat_fn']):
-                    data = np.load(self.params['covmat_fn'], allow_pickle=True)
+                    data = np.load(self.params['covmat_fn'], allow_pickle=True).item()
                     self.cov = data['covmat']
                     nbins = len(self.cov)
                     nmocks = data['nmocks']
@@ -121,7 +121,7 @@ class DensitySplitCCF:
 
                 if self.params['use_reconstruction']:
                     data = np.load(real_multipoles_fn[denbin],
-                                   allow_pickle=True)
+                                   allow_pickle=True).item()
                     self.r_for_xi[denbin] = data['r_c']
                     self.xi_r_array[denbin] = data['xi_0']
 
@@ -132,21 +132,21 @@ class DensitySplitCCF:
                             len(self.mu_for_v[denbin])])
                     else:
                         data = np.load(sv_rmu_filename[denbin],
-                                       allow_pickle=True)
+                                       allow_pickle=True).item()
                         self.r_for_v[denbin] = data[0]
                         self.mu_for_v[denbin] = data[1]
                         self.sv_rmu_array[denbin] = data[2]
 
                     if self.params['fit_data']:
                         data = np.load(redshift_multipoles_fn[denbin],
-                                       allow_pickle=True)
+                                       allow_pickle=True).item()
                         self.s_for_xi[denbin] = data['r_c']
                         self.mu_for_xi[denbin] = data['mu_c']
                         self.xi_0_array[denbin] = data['xi_0']
                         self.xi_2_array[denbin] = data['xi_2']
                         self.xi_4_array[denbin] = data['xi_4']
                 else:
-                    data = np.load(real_multipoles_fn[denbin], allow_pickle=True)
+                    data = np.load(real_multipoles_fn[denbin], allow_pickle=True).item()
                     self.r_for_xi[denbin] = data['r_c']
                     self.xi_r_array[denbin] = data['xi_0']
 
@@ -161,7 +161,7 @@ class DensitySplitCCF:
                             read_2darray(sv_rmu_filename[denbin])
 
                     if self.params['fit_data']:
-                        data = np.load(redshift_multipoles_fn[denbin], allow_pickle=True)
+                        data = np.load(redshift_multipoles_fn[denbin], allow_pickle=True).item()
                         self.s_for_xi[denbin] = data['r_c']
                         self.mu_for_xi[denbin] = data['mu_c']
                         self.xi_0_array[denbin] = data['xi_0']
