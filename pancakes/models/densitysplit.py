@@ -525,7 +525,7 @@ class DensitySplitCCF:
             s = self.s_for_xi[denbin][self.scale_range[denbin]]
             mu = self.mu_for_xi[denbin]
 
-            xi_0, xi_2, xi_4 = self.theory_xi_smu(
+            xi_0, xi_2, xi_4 = self.theory_multipoles(
                 fs8,
                 bs8,
                 sigma_v,
