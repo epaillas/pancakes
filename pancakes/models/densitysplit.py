@@ -578,6 +578,7 @@ class DensitySplitCCF:
         chi2 = np.dot(np.dot((modelvec - datavec),
                              self.icov), modelvec - datavec)
 
+        s = np.tile(s, 4)
         fig, ax = plt.subplots()
         ax.plot(s, datavec)
         ax.plot(s, modelvec)
