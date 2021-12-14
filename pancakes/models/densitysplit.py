@@ -579,6 +579,7 @@ class DensitySplitCCF:
                              self.icov), modelvec - datavec)
 
         s = np.tile(s, 4)
+        s = np.linspace(0, 10, len(s))
         fig, ax = plt.subplots()
         ax.plot(s, datavec)
         ax.plot(s, modelvec)
