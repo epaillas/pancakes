@@ -7,6 +7,7 @@ from scipy.stats import norm
 from ..perturbation_theory.empirical import radial_velocity
 from ..utilities.utilities import multipole, read_2darray
 from ..utilities.cosmology import Cosmology
+import matplotlib.pyplot as plt
 
 
 class DensitySplitCCF:
@@ -576,6 +577,13 @@ class DensitySplitCCF:
 
         chi2 = np.dot(np.dot((modelvec - datavec),
                              self.icov), modelvec - datavec)
+
+        fig, ax = plt.subplots()
+        ax.plot(s, datavec)
+        ax.plot(s, modelvec)
+        plt.savefig(f'test_beta{beta}.png')
+        print('test1 done')
+        plt.close(fig)
 
         loglike = -0.5 * chi2
 
