@@ -578,14 +578,14 @@ class DensitySplitCCF:
         chi2 = np.dot(np.dot((modelvec - datavec),
                              self.icov), modelvec - datavec)
 
-        s = np.tile(s, 4)
-        s = np.linspace(0, 10, len(s))
-        fig, ax = plt.subplots()
-        ax.plot(s, datavec)
-        ax.plot(s, modelvec)
-        plt.savefig(f'test_beta{beta}.png')
-        print('test1 done')
-        plt.close(fig)
+        # s = np.tile(s, 4)
+        # s = np.linspace(0, 10, len(s))
+        # fig, ax = plt.subplots()
+        # ax.plot(s, datavec)
+        # ax.plot(s, modelvec)
+        # plt.savefig(f'test_beta{beta}.png')
+        # print('test1 done')
+        # plt.close(fig)
 
         loglike = -0.5 * chi2
 
@@ -603,7 +603,7 @@ class DensitySplitCCF:
         if self.beta_prior[0] < beta < self.beta_prior[1] \
                 and 0.1 < fs8 < 2.0 and 10 < sigma_v < 700 \
                 and 0.1 < bs8 < 3.0 and 0.8 < q_perp < 1.2 \
-                and 0.8 < q_para < 1.2 and np.all((-5 < nu) & (nu < 5)):
+                and 0.8 < q_para < 1.2 and np.all((0 < nu) & (nu < 2)):
             return 0.0
 
         return -np.inf
