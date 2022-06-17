@@ -77,7 +77,6 @@ class ZeroQuadrupole:
         beta = f / b
 
         chi2 = self.chi2_for_beta(beta)
-        print(chi2)
 
         loglike = -0.5 * chi2
 
