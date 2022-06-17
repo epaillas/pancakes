@@ -1,0 +1,22 @@
+# Configuration file to estimate beta using the
+# template-free approach
+
+# ---- MINIMUM REQUIRED PARAMETERS FOR MODEL PREDICTIONS ---- #
+
+quadrupoles_fn : "data/ds1_reconstructed_quadrupole_beta.npy"  # quadrupoles as a function of beta
+beta_grid_fn: "data/beta_grid.npy"  # grid of beta values over which reconstruction was run
+covmat_fn: "data/covariance_ds1_reconstructed_quadrupole_beta0.36.npy"   # covariance matrix of the measurement. 
+nmocks_covmat: 300  # number of mocks used to estimate the covariance
+
+omega_m: 0.285                  # fiducial matter density
+sigma_8: 0.828                  # fiducial sigma_8
+effective_z : 0.57              # effective redshift
+
+smin: 0,0                       # minimum fitting scale (separate quantiles by commas)
+smax: 150,150                   # maximum fitting scale (separate quantiles by commas)
+
+use_hartlap : 1                 # use Hartlap correction factor for the precision matrix
+
+mcmc:
+  ncores: 4
+  backend: 'data/zero_quadrupole.h5'
