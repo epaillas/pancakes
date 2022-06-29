@@ -1,6 +1,7 @@
 import numpy as np
 import yaml
 import os
+import sys
 from scipy.integrate import simps
 from scipy.interpolate import RectBivariateSpline, InterpolatedUnivariateSpline
 from scipy.stats import norm
@@ -28,13 +29,16 @@ class ZeroQuadrupole:
             self.params = yaml.full_load(file)
 
         quadrupoles_fn = self.params['quadrupoles_fn']
-        self.quadrupoles = np.load(quadrupoles_fn, allow_pickle=True) #array of shape (beta, rbins)
+        self.quadrupoles = np.load(quadrupoles_fn, allow_pickle=True) #array of shape (beta, epsilon, rbins)
 
         smins = [int(i) for i in str(self.params['smin']).split(',')]
         smaxs = [int(i) for i in str(self.params['smax']).split(',')]
 
         self.beta_grid = np.load(self.params['beta_grid_fn'])
         self.beta_prior = [self.beta_grid.min(), self.beta_grid.max()]
+
+        self.epsilon_grid = np.load(self.params['epsilon_grid_fn'])
+        self.epsilon_prior = [self.epsilon_grid.min(), self.epsilon_grid.max()]
 
         # read covariance matrix
         if os.path.isfile(self.params['covmat_fn']):
@@ -49,22 +53,25 @@ class ZeroQuadrupole:
         else:
             raise FileNotFoundError('Covariance matrix not found.')
 
-        self.chi2_for_beta = self.chi2_interpolator()
+        self.chi2_for_theta = self.chi2_interpolator()
+
 
     def chi2_interpolator(self):
-        chi2_grid = []
+        chi2_grid = np.zeros([len(self.beta_grid), len(self.epsilon_grid)])
         for ibeta, beta in enumerate(self.beta_grid):
-            data = self.quadrupoles[ibeta]
-            model = np.zeros_like(data)
+            for ieps, epsilon in enumerate(self.epsilon_grid):
+                data = self.quadrupoles[ibeta, ieps]
+                model = np.zeros_like(data)
 
-            chi2 = np.dot(np.dot((model - data),
-            self.icov), model - data)
-              
-            chi2_grid.append(chi2)
+                chi2 = np.dot(np.dot((model - data),
+                self.icov), model - data)
+                  
+                chi2_grid[ibeta, ieps] = chi2
 
-        chi2_grid = np.asarray(chi2_grid, dtype=float)
-        chi2_interpolator = InterpolatedUnivariateSpline(self.beta_grid,
-            chi2_grid, k=1)
+        chi2_interpolator = RectBivariateSpline(
+            self.beta_grid, self.epsilon_grid,
+            chi2_grid, kx=1, ky=1
+        )
 
         return chi2_interpolator
 
@@ -73,10 +80,9 @@ class ZeroQuadrupole:
         """
         Log-likelihood for the RSD & AP fit.
         """
-        f, b = theta
-        beta = f / b
+        beta, epsilon = theta
 
-        chi2 = self.chi2_for_beta(beta)
+        chi2 = self.chi2_for_theta(beta, epsilon)
 
         loglike = -0.5 * chi2
 
@@ -86,9 +92,9 @@ class ZeroQuadrupole:
         """
         Priors for the RSD & AP parameters.
         """
-        f, b = theta
-        beta = f / b
+        beta, epsilon = theta
 
-        if self.beta_prior[0] < beta < self.beta_prior[1]:
+        if self.beta_prior[0] < beta < self.beta_prior[1]\
+        and self.epsilon_prior[0] < epsilon < self.epsilon_prior[1]:
             return 0.0
         return -np.inf

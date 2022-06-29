@@ -22,18 +22,17 @@ class SamplePosterior:
         # configuration for MCMC
         self.ncores = self.model.params['mcmc']['ncores'] 
         self.nwalkers = self.ncores
-        self.niters = 10_000
+        self.niters = 10000
         self.stop_factor = 100
         self.burnin = 200
         self.backend = self.model.params['mcmc']['backend']
 
         # parameters to fit
         beta = 0.36
-        f = 0.78
-        b = 2.1
+        epsilon = 1.0
 
         self.start_params = np.array(
-            [f, b]
+            [beta, epsilon]
         )
 
         # how parameters scale with respect to one another
@@ -48,23 +47,22 @@ class SamplePosterior:
             for i in range(self.nwalkers)
         ]
 
+
     def run_mcmc(self):
         """
         Run MCMC algorithm to sample
         the posterior distribution.
         """
 
-        backend = emcee.backends.HDFBackend(self.backend)
-        backend.reset(self.nwalkers, self.ndim)
-
-        print(multiprocessing.cpu_count())
+        # backend = emcee.backends.HDFBackend(self.backend)
+        # backend.reset(self.nwalkers, self.ndim)
 
         with Pool(processes=self.ncores) as pool:
 
             sampler = emcee.EnsembleSampler(
                 self.nwalkers, self.ndim,
                 self.log_probability,
-                backend=backend,
+                # backend=backend,
                 pool=pool
             )
 
